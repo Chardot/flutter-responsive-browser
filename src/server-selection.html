@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      padding: 40px 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: #6e6e73;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .server-list {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    
+    .server-item {
+      padding: 20px;
+      border-bottom: 1px solid #e5e5e7;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .server-item:last-child {
+      border-bottom: none;
+    }
+    
+    .server-item:hover {
+      background-color: #f5f5f7;
+    }
+    
+    .server-info {
+      flex: 1;
+    }
+    
+    .project-name {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+    
+    .server-url {
+      font-size: 14px;
+      color: #6e6e73;
+    }
+    
+    .server-port {
+      font-size: 24px;
+      font-weight: 300;
+      color: #007aff;
+    }
+    
+    .no-servers {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .no-servers h2 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    
+    .no-servers p {
+      color: #6e6e73;
+      line-height: 1.5;
+    }
+    
+    .refresh-button {
+      margin-top: 30px;
+      padding: 12px 24px;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .refresh-button:hover {
+      background-color: #0051d5;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6e6e73;
+    }
+    
+    .flutter-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <svg class="flutter-icon" viewBox="0 0 24 24" fill="#007aff">
+        <path d="M14.314 0L2.3 12 6 15.7 21.684 0h-7.37zm.014 11.072L7.857 17.53l6.47 6.47H21.7l-6.46-6.468 6.46-6.46h-7.37z"/>
+      </svg>
+      Flutter Servers
+    </h1>
+    <p class="subtitle">Select a Flutter web server to open</p>
+    
+    <div id="content">
+      <div class="loading">Scanning for Flutter servers...</div>
+    </div>
+  </div>
+  
+  <script>
+    let refreshInterval;
+    
+    // Listen for messages from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'servers') {
+        window.servers = event.data.servers;
+        displayServers(window.servers);
+      }
+    });
+    
+    // Check multiple sources for servers
+    if (window.servers) {
+      displayServers(window.servers);
+    } else if (window.parent && window.parent.flutterServers) {
+      // Check parent window
+      window.servers = window.parent.flutterServers;
+      displayServers(window.servers);
+    }
+    
+    // Signal that the page is ready
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'selection-ready' }, '*');
+    }
+    
+    // Try again after a short delay
+    setTimeout(() => {
+      if (!window.servers && window.parent && window.parent.flutterServers) {
+        window.servers = window.parent.flutterServers;
+        displayServers(window.servers);
+      }
+    }, 100);
+    
+    // This will be populated by the main process
+    function displayServers(servers) {
+      console.log('displayServers called with:', servers);
+      const content = document.getElementById('content');
+      
+      if (!servers || servers.length === 0) {
+        content.innerHTML = `
+          <div class="no-servers">
+            <h2>No Flutter servers found</h2>
+            <p>Make sure your Flutter web app is running.<br>
+            Try: <code>flutter run -d chrome --web-port=5000</code></p>
+            <button class="refresh-button" onclick="refreshServers()">Refresh</button>
+          </div>
+        `;
+        
+        // Auto-refresh every 3 seconds when no servers found
+        if (!refreshInterval) {
+          refreshInterval = setInterval(refreshServers, 3000);
+        }
+        return;
+      }
+      
+      // Clear auto-refresh if servers found
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+      
+      let html = '<div class="server-list">';
+      servers.forEach((server, index) => {
+        html += `
+          <div class="server-item" onclick="selectServer(${index})">
+            <div class="server-info">
+              <div class="project-name">${server.projectName}</div>
+              <div class="server-url">${server.url}</div>
+            </div>
+            <div class="server-port">:${server.port}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      content.innerHTML = html;
+    }
+    
+    function selectServer(index) {
+      if (window.servers && window.servers[index]) {
+        window.selectedServer = window.servers[index];
+        // Clear any refresh interval
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+        }
+        // Notify the main process
+        if (window.electronAPI && window.electronAPI.selectServer) {
+          window.electronAPI.selectServer(window.servers[index]);
+        } else {
+          // Fallback: navigate directly
+          window.location.href = window.servers[index].url;
+        }
+      }
+    }
+    
+    function refreshServers() {
+      // Request the main process to rescan for servers
+      if (window.electronAPI && window.electronAPI.refreshServers) {
+        window.electronAPI.refreshServers();
+      } else {
+        window.location.reload();
+      }
+    }
+  </script>
+</body>
+</html>
