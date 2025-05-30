@@ -68,7 +68,8 @@
     }
     
     .theme-toggle,
-    .screenshot-button {
+    .screenshot-button,
+    .home-button {
       -webkit-app-region: no-drag;
       background: none;
       border: none;
@@ -82,12 +83,14 @@
     }
     
     .theme-toggle:hover,
-    .screenshot-button:hover {
+    .screenshot-button:hover,
+    .home-button:hover {
       color: #fff;
     }
     
     .theme-toggle svg,
-    .screenshot-button svg {
+    .screenshot-button svg,
+    .home-button svg {
       width: 16px;
       height: 16px;
     }
@@ -116,6 +119,11 @@
       <span id="separator" style="display: none;">•</span>
       <span id="viewport-size"></span>
     </div>
+    <button class="home-button" id="home-button" onclick="goHome()" title="Go to server selection">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+      </svg>
+    </button>
     <button class="screenshot-button" id="screenshot-button" onclick="takeScreenshot()" title="Take screenshot">
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
@@ -206,6 +214,22 @@
       if (window.electronAPI && window.electronAPI.takeScreenshot) {
         window.electronAPI.takeScreenshot();
       }
+    }
+    
+    // Go to home (server selection)
+    function goHome() {
+      const selectionUrl = new URL('server-selection.html', window.location.href).href;
+      const deviceInfo = {
+        device: 'Server Selection',
+        viewport: ''
+      };
+      
+      // Trigger a refresh of servers when going home
+      if (window.electronAPI && window.electronAPI.refreshServers) {
+        window.electronAPI.refreshServers();
+      }
+      
+      window.loadContent(selectionUrl, deviceInfo, window.flutterServers);
     }
     
     

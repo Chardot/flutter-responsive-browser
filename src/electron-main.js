@@ -241,6 +241,26 @@ export function createWindow(url, device) {
     }
   });
 
+  ipcMain.on('refresh-servers', async () => {
+    if (!mainWindow) return;
+    
+    // Import the flutter detector dynamically
+    const { detectFlutterServers } = await import('./flutter-detector.js');
+    
+    console.log('🔍 Refreshing Flutter servers...');
+    const servers = await detectFlutterServers();
+    global.flutterServers = servers;
+    
+    // Send updated servers to the renderer
+    mainWindow.webContents.executeJavaScript(`
+      const iframe = document.getElementById('content-frame');
+      if (iframe && iframe.contentWindow) {
+        window.flutterServers = ${JSON.stringify(servers)};
+        iframe.contentWindow.postMessage({ type: 'servers', servers: ${JSON.stringify(servers)} }, '*');
+      }
+    `).catch(console.error);
+  });
+
   // Handle navigation errors
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     if (errorCode === -102) { // ERR_CONNECTION_REFUSED

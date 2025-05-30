@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('close-window'),
   selectServer: (server) => ipcRenderer.send('select-server', server),
   takeScreenshot: () => ipcRenderer.send('take-screenshot'),
+  refreshServers: () => ipcRenderer.send('refresh-servers'),
 });
