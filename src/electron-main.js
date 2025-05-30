@@ -1,7 +1,9 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, desktopCapturer } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { ElectronDeviceManager } from './electron-devices.js';
+import { writeFile } from 'fs/promises';
+import { homedir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -206,6 +208,36 @@ export function createWindow(url, device) {
   ipcMain.on('close-window', () => {
     if (mainWindow) {
       mainWindow.close();
+    }
+  });
+
+  ipcMain.on('take-screenshot', async () => {
+    if (!mainWindow) return;
+    
+    try {
+      // Get the bounds of the iframe content (excluding the 28px title bar)
+      const [width, height] = mainWindow.getContentSize();
+      const rect = {
+        x: 0,
+        y: 28, // Skip the title bar
+        width: width,
+        height: height - 28 // Subtract title bar height
+      };
+      
+      // Capture only the iframe area
+      const image = await mainWindow.webContents.capturePage(rect);
+      const buffer = image.toPNG();
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const filename = `frb-screenshot-${timestamp}.png`;
+      const downloadsPath = join(homedir(), 'Downloads', filename);
+      
+      // Save to Downloads folder
+      await writeFile(downloadsPath, buffer);
+      console.log(`✓ Screenshot saved to: ${downloadsPath}`);
+    } catch (error) {
+      console.error('Failed to take screenshot:', error);
     }
   });
 
