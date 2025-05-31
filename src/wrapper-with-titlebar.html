@@ -289,6 +289,34 @@
     
     // Initialize theme on page load
     initTheme();
+    
+    // Focus iframe content when clicked to ensure paste works
+    document.getElementById('content-frame').addEventListener('load', () => {
+      const iframe = document.getElementById('content-frame');
+      
+      // Forward focus to iframe
+      iframe.addEventListener('mousedown', () => {
+        setTimeout(() => {
+          try {
+            iframe.contentWindow.focus();
+          } catch (e) {
+            // Cross-origin, can't focus directly
+          }
+        }, 0);
+      });
+    });
+    
+    // Ensure iframe gets focus for keyboard events
+    window.addEventListener('focus', () => {
+      const iframe = document.getElementById('content-frame');
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.focus();
+        } catch (e) {
+          // Cross-origin
+        }
+      }
+    });
   </script>
 </body>
 </html>

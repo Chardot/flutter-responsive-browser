@@ -133,6 +133,18 @@ function updateApplicationMenu() {
       ],
     },
     {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
       label: 'Device',
       submenu: createDeviceMenu(),
     },
@@ -184,6 +196,7 @@ export function createWindow(url, device) {
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, 'electron-preload.js'),
+      webSecurity: true,
     },
     resizable: false, // Lock to device size
     center: true,
