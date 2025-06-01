@@ -8,12 +8,13 @@ export async function detectFlutterServers() {
   console.log(chalk.gray('🔍 Scanning for Flutter web servers...'));
   
   const servers = [];
+  const uniqueServices = new Map(); // Use Map for deduplication
   
   try {
     // First, find all dart/flutter processes with their ports using lsof
     // This is much more efficient than scanning individual ports
     const { stdout } = await execAsync(
-      `lsof -iTCP -sTCP:LISTEN -P -n | grep -E '(dart|flutter)' | awk '{print $2, $9}' | sort -u || true`,
+      `lsof -iTCP -sTCP:LISTEN -P -n | grep -E '(dart|flutter)' || true`,
       { shell: true, timeout: 5000 }
     );
     
@@ -21,21 +22,55 @@ export async function detectFlutterServers() {
       const lines = stdout.trim().split('\n').filter(line => line);
       
       for (const line of lines) {
-        const parts = line.split(' ');
-        if (parts.length >= 2) {
-          const pid = parts[0];
-          const address = parts[1];
+        // Parse lsof output more carefully
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 9) {
+          const processName = parts[0];
+          const pid = parts[1];
+          // Find the column with TCP address (contains colon and ends with (LISTEN))
+          let address = '';
+          for (let i = 8; i < parts.length; i++) {
+            if (parts[i].includes(':') && i + 1 < parts.length && parts[i + 1] === '(LISTEN)') {
+              address = parts[i];
+              break;
+            }
+          }
           
-          // Extract port from address (format: *:PORT or IP:PORT)
-          const portMatch = address.match(/:(\d+)$/);
-          if (portMatch) {
-            const port = parseInt(portMatch[1]);
+          if (!address) continue;
+          
+          // Extract port and IP from address (format: IP:PORT or *:PORT)
+          const addressMatch = address.match(/^(.+):(\d+)$/);
+          if (addressMatch) {
+            const [, ip, portStr] = addressMatch;
+            const port = parseInt(portStr);
             
             // Check if it's a web server port (typically > 3000)
             if (port >= 3000 && port <= 70000) {
               const server = await getServerInfo(pid, port);
               if (server) {
-                servers.push(server);
+                // Create unique key based on project name and port
+                const serviceKey = `${server.projectName}:${port}`;
+                
+                if (!uniqueServices.has(serviceKey)) {
+                  // First time seeing this service
+                  server.addresses = new Set([ip]);
+                  server.protocols = new Set();
+                  if (ip.includes(':')) {
+                    server.protocols.add('tcp6');
+                  } else {
+                    server.protocols.add('tcp4');
+                  }
+                  uniqueServices.set(serviceKey, server);
+                } else {
+                  // Update existing service with additional address info
+                  const existing = uniqueServices.get(serviceKey);
+                  existing.addresses.add(ip);
+                  if (ip.includes(':')) {
+                    existing.protocols.add('tcp6');
+                  } else {
+                    existing.protocols.add('tcp4');
+                  }
+                }
               }
             }
           }
@@ -44,7 +79,7 @@ export async function detectFlutterServers() {
     }
     
     // If no servers found with the efficient method, fall back to checking common ports
-    if (servers.length === 0) {
+    if (uniqueServices.size === 0) {
       console.log(chalk.gray('No Flutter processes found, checking common ports...'));
       
       const commonPorts = [
@@ -64,7 +99,12 @@ export async function detectFlutterServers() {
         
         results.forEach((server) => {
           if (server) {
-            servers.push(server);
+            const serviceKey = `${server.projectName}:${server.port}`;
+            if (!uniqueServices.has(serviceKey)) {
+              server.addresses = new Set(['localhost']);
+              server.protocols = new Set(['tcp4']);
+              uniqueServices.set(serviceKey, server);
+            }
           }
         });
       }
@@ -73,15 +113,48 @@ export async function detectFlutterServers() {
     console.error(chalk.yellow('Error detecting Flutter servers:'), error.message);
   }
   
-  // Remove duplicate servers (same port)
-  const uniqueServers = servers.reduce((acc, server) => {
-    if (!acc.find(s => s.port === server.port)) {
-      acc.push(server);
-    }
-    return acc;
-  }, []);
+  // Convert Map values to array
+  let uniqueServers = Array.from(uniqueServices.values());
   
-  return uniqueServers;
+  // Group servers by project name
+  const serversByProject = {};
+  uniqueServers.forEach(server => {
+    if (!serversByProject[server.projectName]) {
+      serversByProject[server.projectName] = [];
+    }
+    serversByProject[server.projectName].push(server);
+  });
+  
+  // For each project, prefer tcp6 servers that are not starting up
+  const filteredServers = [];
+  Object.entries(serversByProject).forEach(([projectName, servers]) => {
+    // Sort servers by preference: tcp6 and not starting up first
+    servers.sort((a, b) => {
+      // Prefer servers that are not starting up
+      if (!a.isStartingUp && b.isStartingUp) return -1;
+      if (a.isStartingUp && !b.isStartingUp) return 1;
+      
+      // Then prefer tcp6
+      const aHasTcp6 = a.protocols && a.protocols.has('tcp6');
+      const bHasTcp6 = b.protocols && b.protocols.has('tcp6');
+      if (aHasTcp6 && !bHasTcp6) return -1;
+      if (!aHasTcp6 && bHasTcp6) return 1;
+      
+      return 0;
+    });
+    
+    // Only keep the best server for each project
+    filteredServers.push(servers[0]);
+  });
+  
+  // Log each filtered server
+  filteredServers.forEach(server => {
+    const status = server.isStartingUp ? ' (starting up)' : '';
+    const protocols = server.protocols ? ` [${Array.from(server.protocols).join(', ')}]` : '';
+    console.log(chalk.green(`✓ Found Flutter server: ${server.projectName} on port ${server.port}${status}${protocols}`));
+  });
+  
+  return filteredServers;
 }
 
 async function getServerInfo(pid, port) {
@@ -98,31 +171,50 @@ async function getServerInfo(pid, port) {
       projectName = projectPath.split('/').pop() || 'Flutter App';
     }
     
-    // Verify the server is responding
+    // Check if this is actually a Flutter web server by trying to fetch it
     try {
       const response = await fetch(`http://localhost:${port}`, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(1000)
+        method: 'GET',
+        signal: AbortSignal.timeout(1500),
+        headers: {
+          'Accept': 'text/html'
+        }
       });
       
-      if (response.ok || response.status === 404) {
-        console.log(chalk.green(`✓ Found Flutter server: ${projectName} on port ${port}`));
-        return {
-          port,
-          url: `http://localhost:${port}`,
-          projectName,
-          processName: 'dart',
-        };
+      if (response.ok) {
+        const text = await response.text();
+        // Check if this is a Flutter web app by looking for Flutter-specific content
+        const isFlutterWeb = text.includes('flutter') || 
+                           text.includes('Flutter') || 
+                           text.includes('main.dart.js') ||
+                           text.includes('flutter_service_worker.js') ||
+                           text.includes('<!DOCTYPE html>'); // Most Flutter web apps serve HTML
+        
+        // Also check if it's NOT a DevTools or Observatory page
+        const isDevTools = text.includes('DevTools') || 
+                          text.includes('Observatory') ||
+                          text.includes('vm_service') ||
+                          port < 10000; // DevTools/Observatory typically use lower ports
+        
+        if (isFlutterWeb && !isDevTools) {
+          return {
+            port,
+            url: `http://localhost:${port}`,
+            projectName,
+            processName: 'dart',
+          };
+        }
       }
     } catch (fetchError) {
-      // Server might not be HTTP or might be starting up
-      if (fetchError.name !== 'AbortError') {
-        console.log(chalk.green(`✓ Found Flutter server: ${projectName} on port ${port} (starting up)`));
+      // If we can't fetch, it might be starting up or not an HTTP server
+      // Only return it if it's in the typical Flutter web port range
+      if (port >= 40000 && port <= 65000 && fetchError.name !== 'AbortError') {
         return {
           port,
           url: `http://localhost:${port}`,
           projectName,
           processName: 'dart',
+          isStartingUp: true,
         };
       }
     }
@@ -146,31 +238,10 @@ async function checkPort(port) {
       const lines = stdout.trim().split('\n');
       const processInfo = lines[0].split(/\s+/);
       const processName = processInfo[0];
+      const pid = processInfo[1];
       
-      // Try to get the Flutter project name from the process
-      let projectName = 'Flutter App';
-      try {
-        const { stdout: pwdOutput } = await execAsync(`lsof -p ${processInfo[1]} | grep cwd | awk '{print $NF}' | head -1`, {
-          shell: true,
-          timeout: 1000
-        });
-        
-        if (pwdOutput) {
-          const projectPath = pwdOutput.trim();
-          projectName = projectPath.split('/').pop() || 'Flutter App';
-        }
-      } catch (e) {
-        // Ignore errors in getting project name
-      }
-      
-      console.log(chalk.green(`✓ Found Flutter server: ${projectName} on port ${port}`));
-      
-      return {
-        port,
-        url: `http://localhost:${port}`,
-        projectName,
-        processName,
-      };
+      // Use getServerInfo to apply the same filtering logic
+      return await getServerInfo(pid, port);
     }
   } catch (error) {
     // Port not in use or error checking

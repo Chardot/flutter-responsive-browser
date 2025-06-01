@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Flutter Responsive Browser</title>
   <style>
     * {
       margin: 0;
@@ -233,6 +234,9 @@
         viewport: ''
       };
       
+      // Update window title
+      document.title = 'Server Selection';
+      
       // Trigger a refresh of servers when going home
       if (window.electronAPI && window.electronAPI.refreshServers) {
         window.electronAPI.refreshServers();
@@ -282,8 +286,25 @@
           * { scrollbar-width: none; }
         `;
         iframeDoc.head.appendChild(style);
+        
+        // Update window title from iframe title
+        if (iframeDoc.title) {
+          document.title = iframeDoc.title;
+        }
       } catch (e) {
-        // Cross-origin, ignore
+        // Cross-origin, can't access title directly
+        // Try to extract from URL
+        try {
+          const url = new URL(iframe.src);
+          if (url.hostname === 'localhost' && !iframe.src.includes('server-selection.html')) {
+            // It's a Flutter app
+            document.title = 'Flutter App';
+          } else if (iframe.src.includes('server-selection.html')) {
+            document.title = 'Server Selection';
+          }
+        } catch (urlError) {
+          // Keep default title
+        }
       }
     });
     
