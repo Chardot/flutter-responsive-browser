@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { ElectronDeviceManager } from './electron-devices.js';
 import { writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { homedir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,16 @@ let mainWindow;
 let currentDevice;
 let currentUrl;
 const deviceManager = new ElectronDeviceManager();
+
+// Helper function to convert server objects for JSON serialization
+function serializeServers(servers) {
+  if (!servers) return [];
+  return servers.map(server => ({
+    ...server,
+    addresses: server.addresses ? Array.from(server.addresses) : [],
+    protocols: server.protocols ? Array.from(server.protocols) : []
+  }));
+}
 
 function createDeviceMenu() {
   const devices = deviceManager.getAllDevices();
@@ -119,7 +130,7 @@ function switchDevice(deviceName, device) {
 function updateApplicationMenu() {
   const template = [
     {
-      label: 'Flutter Responsive Browser',
+      label: 'Flutt',
       submenu: [
         { role: 'about' },
         { type: 'separator' },
@@ -185,6 +196,24 @@ export function createWindow(url, device) {
   const windowWidth = Math.max(device.viewport.width, 320);
   const windowHeight = device.viewport.height + titleBarHeight;
 
+  // Determine icon path based on platform
+  let iconPath;
+  const iconDir = join(__dirname, '..', 'assets', 'icons');
+  
+  if (process.platform === 'darwin') {
+    iconPath = join(iconDir, 'icon.icns');
+  } else if (process.platform === 'win32') {
+    iconPath = join(iconDir, 'icon.ico');
+  } else {
+    iconPath = join(iconDir, 'icon.png');
+  }
+  
+  // Verify icon exists
+  if (!existsSync(iconPath)) {
+    console.log('Warning: Icon file not found at', iconPath);
+    iconPath = undefined;
+  }
+
   // Create frameless window for clean appearance
   mainWindow = new BrowserWindow({
     width: windowWidth,
@@ -192,6 +221,7 @@ export function createWindow(url, device) {
     frame: false, // Frameless window
     transparent: false,
     backgroundColor: '#ffffff',
+    icon: iconPath, // Set the app icon
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -243,7 +273,7 @@ export function createWindow(url, device) {
       
       // Generate filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      const filename = `frb-screenshot-${timestamp}.png`;
+      const filename = `flutt-screenshot-${timestamp}.png`;
       const downloadsPath = join(homedir(), 'Downloads', filename);
       
       // Save to Downloads folder
@@ -257,6 +287,20 @@ export function createWindow(url, device) {
   ipcMain.on('refresh-servers', async () => {
     if (!mainWindow) return;
     
+    // Show loading state immediately
+    mainWindow.webContents.executeJavaScript(`
+      try {
+        const iframe = document.getElementById('content-frame');
+        if (iframe && iframe.contentWindow) {
+          // Clear servers to show scanning state
+          window.flutterServers = [];
+          iframe.contentWindow.postMessage({ type: 'servers', servers: [] }, '*');
+        }
+      } catch (e) {
+        console.error('Error clearing servers:', e);
+      }
+    `).catch(console.error);
+    
     // Import the flutter detector dynamically
     const { detectFlutterServers } = await import('./flutter-detector.js');
     
@@ -264,12 +308,19 @@ export function createWindow(url, device) {
     const servers = await detectFlutterServers();
     global.flutterServers = servers;
     
+    // Convert Sets to Arrays for JSON serialization
+    const serializableServers = serializeServers(servers);
+    
     // Send updated servers to the renderer
     mainWindow.webContents.executeJavaScript(`
-      const iframe = document.getElementById('content-frame');
-      if (iframe && iframe.contentWindow) {
-        window.flutterServers = ${JSON.stringify(servers)};
-        iframe.contentWindow.postMessage({ type: 'servers', servers: ${JSON.stringify(servers)} }, '*');
+      try {
+        const iframe = document.getElementById('content-frame');
+        if (iframe && iframe.contentWindow) {
+          window.flutterServers = ${JSON.stringify(serializableServers)};
+          iframe.contentWindow.postMessage({ type: 'servers', servers: ${JSON.stringify(serializableServers)} }, '*');
+        }
+      } catch (e) {
+        console.error('Error sending servers:', e);
       }
     `).catch(console.error);
   });
@@ -296,7 +347,7 @@ export function createWindow(url, device) {
         viewport: ''
       };
       
-      const servers = global.flutterServers || [];
+      const servers = serializeServers(global.flutterServers || []);
       
       mainWindow.webContents.executeJavaScript(`
         console.log('Loading selection page with ${servers.length} servers...');
@@ -389,7 +440,51 @@ export function createWindow(url, device) {
 
 // Handle app ready
 export function initElectron(url, device) {
+  // Set dock icon for macOS before app is ready
+  if (process.platform === 'darwin' && app.dock) {
+    const iconDir = join(__dirname, '..', 'assets', 'icons');
+    const dockIconPng = join(iconDir, 'icon-dock.png');
+    const dockIconIcns = join(iconDir, 'icon.icns');
+    
+    let iconSet = false;
+    
+    // Try PNG first (often more reliable with Electron)
+    if (existsSync(dockIconPng)) {
+      try {
+        app.dock.setIcon(dockIconPng);
+        console.log('Custom dock icon (PNG) set successfully');
+        iconSet = true;
+      } catch (error) {
+        console.log('Error setting PNG dock icon:', error.message);
+      }
+    }
+    
+    // If PNG didn't work, try ICNS
+    if (!iconSet && existsSync(dockIconIcns)) {
+      try {
+        app.dock.setIcon(dockIconIcns);
+        console.log('Custom dock icon (ICNS) set successfully');
+      } catch (error) {
+        console.log('Error setting ICNS dock icon:', error.message);
+      }
+    }
+  }
+
   app.whenReady().then(() => {
+    // Try setting dock icon again after app is ready (for macOS)
+    if (process.platform === 'darwin' && app.dock) {
+      const iconDir = join(__dirname, '..', 'assets', 'icons');
+      const dockIconPng = join(iconDir, 'icon-dock.png');
+      
+      if (existsSync(dockIconPng)) {
+        try {
+          app.dock.setIcon(dockIconPng);
+        } catch (error) {
+          // Already logged above
+        }
+      }
+    }
+    
     createWindow(url, device);
 
     app.on('activate', () => {

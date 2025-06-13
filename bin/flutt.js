@@ -12,8 +12,8 @@ const __dirname = dirname(__filename);
 const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
 
 program
-  .name('frb')
-  .description(chalk.cyan('Flutter Responsive Browser - Launch browsers in mobile device emulation mode'))
+  .name('flutt')
+  .description(chalk.cyan('Flutt - Launch browsers in mobile device emulation mode'))
   .version(packageJson.version);
 
 program
@@ -28,7 +28,7 @@ program
         process.exit(0);
       }
 
-      console.log(chalk.cyan('\n🌐 Flutter Responsive Browser\n'));
+      console.log(chalk.cyan('\n🌐 Flutt\n'));
 
       if (options.playwright) {
         // Dynamically import Playwright browser only when needed
@@ -46,11 +46,11 @@ program
 program.on('--help', () => {
   console.log('');
   console.log(chalk.gray('Examples:'));
-  console.log(chalk.gray('  $ frb                              # Launch with Electron (no Chrome UI)'));
-  console.log(chalk.gray('  $ frb --url http://localhost:3000'));
-  console.log(chalk.gray('  $ frb --device "Pixel 5"'));
-  console.log(chalk.gray('  $ frb --list'));
-  console.log(chalk.gray('  $ frb --playwright                 # Use Playwright (with Chrome UI)'));
+  console.log(chalk.gray('  $ flutt                            # Launch with Electron (no Chrome UI)'));
+  console.log(chalk.gray('  $ flutt --url http://localhost:3000'));
+  console.log(chalk.gray('  $ flutt --device "Pixel 5"'));
+  console.log(chalk.gray('  $ flutt --list'));
+  console.log(chalk.gray('  $ flutt --playwright               # Use Playwright (with Chrome UI)'));
   console.log('');
   console.log(chalk.gray('Popular devices:'));
   console.log(chalk.gray('  - iPhone 12, iPhone 13, iPhone 14'));

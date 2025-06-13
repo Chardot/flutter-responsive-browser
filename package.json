@@ -1,18 +1,21 @@
 {
-  "name": "flutter-responsive-browser",
+  "name": "flutt",
   "version": "1.0.0",
   "description": "A standalone tool that launches a browser window with mobile device emulation for Flutter web development",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/electron-app.js",
   "bin": {
-    "frb": "./bin/frb.js"
+    "flutt": "./bin/flutt.js"
   },
   "scripts": {
-    "start": "node bin/frb.js",
-    "dev": "node --watch bin/frb.js",
+    "start": "node bin/flutt.js",
+    "dev": "node --watch bin/flutt.js",
     "test": "jest",
     "lint": "eslint src bin --ext .js",
-    "lint:fix": "eslint src bin --ext .js --fix"
+    "lint:fix": "eslint src bin --ext .js --fix",
+    "build": "electron-builder",
+    "dist": "electron-builder --mac",
+    "dist:all": "electron-builder --mac --win --linux"
   },
   "keywords": [
     "flutter",
@@ -26,11 +29,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "commander": "^9.5.0",
     "chalk": "^5.3.0",
-    "electron": "^28.1.0"
+    "commander": "^9.5.0"
   },
   "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^8.56.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.1",
@@ -38,5 +42,51 @@
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "build": {
+    "appId": "com.flutt.app",
+    "productName": "Flutt",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "bin/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!src/**/*.test.js",
+      "!**/.DS_Store"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/icons",
+        "to": "assets/icons",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icons/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "icon": "assets/icons/icon.ico",
+      "target": "nsis"
+    },
+    "linux": {
+      "icon": "assets/icons/icon.png",
+      "target": "AppImage",
+      "category": "Development"
+    }
   }
 }

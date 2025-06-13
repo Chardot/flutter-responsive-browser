@@ -1,10 +1,10 @@
-# Flutter Responsive Browser (FRB)
+# Flutt
 
 **Launch Flutter web apps directly in mobile device emulation mode. No more manual DevTools setup.**
 
-## 🚀 What is FRB?
+## 🚀 What is Flutt?
 
-Flutter Responsive Browser is a developer tool that automatically launches your Flutter web applications in a browser window with mobile device emulation enabled. It eliminates the repetitive task of manually opening Chrome DevTools, switching to responsive mode, and selecting a device every time you debug your Flutter app.
+Flutt is a developer tool that automatically launches your Flutter web applications in a browser window with mobile device emulation enabled. It eliminates the repetitive task of manually opening Chrome DevTools, switching to responsive mode, and selecting a device every time you debug your Flutter app.
 
 ## ✨ Features
 
@@ -17,7 +17,7 @@ Flutter Responsive Browser is a developer tool that automatically launches your 
 - **🛠️ Developer Friendly** - Simple CLI with intuitive commands
 - **🖥️ Cross-Platform** - Works on Windows, macOS, and Linux
 
-## 🎯 Why FRB?
+## 🎯 Why Flutt?
 
 If you're a Flutter developer or UX designer working on responsive web apps, you know the pain:
 
@@ -28,131 +28,144 @@ If you're a Flutter developer or UX designer working on responsive web apps, you
 5. Adjust zoom level
 6. **Repeat every single time** 😫
 
-With FRB, it's just:
-```bash
-frb
-```
-
-That's it. Your app opens instantly in mobile view, ready for development.
-
-## 🚦 Quick Start
+With Flutt, it's just:
 
 ```bash
-# Install globally
-npm install -g flutter-responsive-browser
-
-# Launch with default iPhone emulation
-frb
-
-# Specify a device
-frb --device "Pixel 5"
-
-# List available devices
-frb --list
+flutt
 ```
 
-## 📱 Supported Devices
+That's it! Your Flutter app opens instantly in a clean, mobile-emulated browser.
 
-- **iOS**: iPhone 12/13/14/15, iPhone SE, iPad, iPad Pro
-- **Android**: Pixel 5/6/7, Samsung Galaxy S21, OnePlus 9
-- **Tablets**: iPad Air, iPad Pro, Android tablets
-- **Custom**: Define your own device configurations
+## 🚀 Quick Start
 
-## 🔧 Advanced Usage
+### Install
 
 ```bash
-# Auto-detect Flutter server
-frb --flutter
-
-# Launch with device frame
-frb --frame
-
-# Custom zoom level
-frb --zoom 75
-
-# Multiple devices at once
-frb --device "iPhone 12" --device "iPad"
-
-# Network throttling
-frb --network 3G
-
-# Save custom device preset
-frb --save-device "My Device" --width 380 --height 820
+npm install -g flutt
 ```
 
-## 🤝 Perfect For
+### Basic Usage
 
-- **Flutter Developers** building responsive web applications
-- **UX Designers** creating and testing mobile-first designs
-- **QA Engineers** testing across multiple device viewports
-- **Frontend Developers** who need quick mobile previews
+```bash
+# Auto-detect and launch Flutter web server
+flutt
 
-## 🛠️ Requirements
+# Launch with specific URL
+flutt --url http://localhost:3000
 
-- Node.js 14 or higher
-- Flutter SDK (for Flutter integration)
-- Chrome/Chromium browser
+# Use a specific device
+flutt --device "iPhone 14"
 
-## 📦 Installation Options
+# List all available devices
+flutt --list
+```
+
+## 📱 Available Devices
+
+### iPhones
+- iPhone SE, iPhone 12 Mini, iPhone 12, iPhone 12 Pro, iPhone 12 Pro Max
+- iPhone 13 Mini, iPhone 13, iPhone 13 Pro, iPhone 13 Pro Max
+- iPhone 14, iPhone 14 Plus, iPhone 14 Pro, iPhone 14 Pro Max
+
+### Android Phones
+- Pixel 4, Pixel 5, Pixel 6, Pixel 7
+- Galaxy S8, Galaxy S9+, Galaxy S20 Ultra
+
+### Tablets
+- iPad Mini, iPad Air, iPad Pro (11" and 12.9")
+- Nexus 7, Nexus 10, Pixel C
+
+## ⚙️ Command Options
+
+```bash
+flutt [options]
+
+Options:
+  -u, --url <url>        URL to open (auto-detects Flutter servers if not specified)
+  -d, --device <device>  Device to emulate (default: "iPhone 12")
+  -l, --list            List all available devices
+  --playwright          Use Playwright instead of Electron (includes Chrome UI)
+  -h, --help           Display help
+  -V, --version        Display version
+```
+
+## 🔧 Installation Options
 
 ### npm (Recommended)
 ```bash
-npm install -g flutter-responsive-browser
+npm install -g flutt
 ```
 
-### Homebrew (macOS)
+### Homebrew
 ```bash
-brew tap yourusername/frb
-brew install flutter-responsive-browser
+brew tap yourusername/flutt
+brew install flutt
 ```
 
 ### Direct Download
-Download platform-specific binaries from the [releases page](https://github.com/yourusername/flutter-responsive-browser/releases).
+Download the latest release from [GitHub Releases](https://github.com/yourusername/flutt/releases)
 
-## 🎯 VS Code Integration
+## 🎨 Features in Detail
 
-Add to your `.vscode/tasks.json`:
+### Auto-Detection of Flutter Servers
+Flutt automatically scans for running Flutter web servers on your machine:
+- Detects servers on common ports (3000-9999)
+- Shows project name and port
+- Launches with a single click
+
+### Visual Device Emulation
 ```json
 {
-  "label": "Flutter Mobile Preview",
-  "type": "shell",
-  "command": "frb",
-  "args": ["--flutter", "--device", "iPhone 12"],
-  "problemMatcher": []
+  "frames": true,
+  "darkMode": false,
+  "zoomLevel": 0.75,
+  "orientation": "portrait",
+  "networkThrottle": "Fast 3G",
+  "touchEmulation": true,
+  "deviceMetrics": true
 }
 ```
 
-## 🤔 How It Works
+### Keyboard Shortcuts
+- `Ctrl/Cmd + Shift + D` - Toggle device frame
+- `Ctrl/Cmd + Shift + R` - Rotate device
+- `Ctrl/Cmd + Plus/Minus` - Zoom in/out
+- `Ctrl/Cmd + 0` - Reset zoom
 
-FRB uses Playwright's browser automation to launch Chromium with true mobile device emulation. Unlike simply resizing a browser window, it provides:
+## 🚀 Why Developers Love Flutt
 
-- Correct mobile user agent strings
-- Touch event simulation
-- Device pixel ratio emulation
-- Mobile viewport behavior
-- Native mobile form controls
+### Performance
+Flutt uses Playwright's browser automation to ensure fast, reliable device emulation with minimal overhead.
 
-This ensures your Flutter web app behaves exactly as it would on a real mobile device.
+### Comparison
 
-## 📊 Comparison
-
-| Method | Setup Time | True Mobile Emulation | Persistent Settings |
-|--------|------------|----------------------|-------------------|
-| Manual DevTools | 30-60s | ✅ | ❌ |
-| Browser Resize | 5s | ❌ | ❌ |
-| **FRB** | **< 3s** | **✅** | **✅** |
-
-## 🚧 Roadmap
-
-- [ ] Safari/WebKit device emulation
-- [ ] Flutter plugin for tighter integration  
-- [ ] Cloud-based device farm
-- [ ] Visual regression testing
-- [ ] Figma design handoff integration
+| Feature | Manual DevTools | Chrome Extensions | Flutt |
+|---------|----------------|-------------------|--------|
+| Setup Time | 15-30 seconds | 10-15 seconds | **< 3 seconds** |
+| Auto Flutter Detection | ❌ | ❌ | **✅** |
+| True Mobile Emulation | ✅ | Partial | **✅** |
+| Custom Devices | Limited | ❌ | **✅** |
+| Visual Frames | ❌ | Some | **✅** |
+| Cross-Platform | ✅ | ✅ | **✅** |
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+# Clone the repo
+git clone https://github.com/yourusername/flutt.git
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
+
+# Run tests
+npm test
+```
 
 ## 📄 License
 
@@ -160,10 +173,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-Built with [Playwright](https://playwright.dev/) for browser automation and inspired by the Flutter community's need for better mobile development workflows.
+Built with:
+- [Playwright](https://playwright.dev/) - Browser automation
+- [Commander.js](https://github.com/tj/commander.js/) - CLI framework
+- [Chalk](https://github.com/chalk/chalk) - Terminal styling
 
 ---
 
-**Made with ❤️ for Flutter developers who value their time**
-
-*If FRB saves you time, consider giving it a ⭐ on GitHub!*
+*If Flutt saves you time, consider giving it a ⭐ on GitHub!*

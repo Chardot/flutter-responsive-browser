@@ -1,64 +1,63 @@
-# Flutter Responsive Browser - Implementation Plan for Claude Code
+# Flutt - Implementation Plan
 
 ## Project Overview
-
-Create a standalone tool that launches a browser window with mobile device emulation for Flutter web development, eliminating the need to manually open Chrome DevTools and switch to responsive mode. This project will be developed entirely by Claude Code (Claude Opus 4).
+A developer tool that launches browsers in mobile device emulation mode for Flutter web development.
 
 ## Goals
+- Launch browser with pre-configured mobile device emulation
+- Support multiple device presets (iPhone, Android, tablets)
+- Integrate with Flutter development workflow
+- Provide visual enhancements (device frames, zoom controls)
+- Auto-detect running Flutter web servers
 
-- **Primary**: Launch a browser that automatically opens in mobile device emulation mode
-- **Secondary**: Support multiple device presets and custom configurations
-- **Nice-to-have**: Integration with Flutter toolchain and visual device frames
+## Technical Stack
+- **Core**: Node.js with ES modules
+- **Browser Automation**: Playwright
+- **CLI Framework**: Commander.js
+- **Terminal Styling**: Chalk
+- **Testing**: Jest
 
-## Technology Stack
+## Architecture
+- CLI interface for user commands
+- Browser controller using Playwright
+- Device configuration manager
+- Flutter server detector
+- Visual enhancement layer
 
-- **Node.js**: Runtime environment
-- **Playwright**: Browser automation and device emulation
-- **Commander.js**: CLI argument parsing
-- **Chalk**: Terminal output styling
+## Directory Structure
 
-## Development Approach with Claude Code
+### Phase 0: Project Setup
 
-### Initial Setup Prompt
+Create a new Node.js project called "flutt" with the following structure:
 
 ```
-Create a new Node.js project called "flutter-responsive-browser" with the following structure:
-- Initialize npm with appropriate package.json
-- Install playwright, commander, and chalk as dependencies
-- Create the directory structure as specified
-- Set up ESLint with standard configuration
-```
-
-### Project Structure
-
-```
-flutter-responsive-browser/
+flutt/
 ├── package.json
 ├── README.md
 ├── bin/
-│   └── frb.js                  # CLI entry point
+│   └── flutt.js                # CLI entry point
 ├── docs/
 │   └── implementation_plan.md  # Dev implementation plan
 ├── src/
 │   ├── index.js                # Main application logic
 │   ├── devices.js              # Device configurations
 │   ├── browser.js              # Browser launch logic
-│   └── utils.js                # Helper functions
-├── config/
-│   └── default-devices.json    # Default device presets
+│   ├── flutter-detector.js     # Flutter server detection
+│   ├── visual-enhancements.js # Device frames, zoom
+│   └── config.js               # User configuration
+├── test/
+│   └── *.test.js               # Test files
 └── examples/
-    └── flutter-integration.sh
+    └── flutter-integration.sh  # Example scripts
 ```
-
-## Implementation Phases
 
 ### Phase 1: Core Functionality
 
 #### Task 1.1: Project Foundation
 **Prompt for Claude Code:**
 ```
-Set up the flutter-responsive-browser project:
-1. Create package.json with name "flutter-responsive-browser", version "1.0.0"
+Set up the flutt project:
+1. Create package.json with name "flutt", version "1.0.0"
 2. Add dependencies: playwright@latest, commander@9, chalk@5
 3. Create the directory structure listed above
 4. Add npm scripts: "start", "dev", "test"
@@ -72,192 +71,173 @@ Set up the flutter-responsive-browser project:
 Implement the core browser launch functionality in src/browser.js:
 1. Create a function that launches Chromium with Playwright
 2. Set default device emulation to iPhone 12
-3. Accept a URL parameter (default to http://localhost:5000)
-4. Keep the browser window open until manually closed
-5. Export the launch function for use in other modules
-Include proper error handling for connection failures
+3. Enable touch events and mobile viewport
+4. Add error handling for browser launch failures
+5. Export the launch function
 ```
 
 #### Task 1.3: CLI Interface
 **Prompt for Claude Code:**
 ```
-Create the CLI interface in bin/frb.js:
-1. Make it executable with #!/usr/bin/env node
-2. Use Commander.js to parse arguments: --url, --device, --list
-3. Import and use the browser launch function
-4. Add colorful output with Chalk
-5. Handle errors gracefully with helpful messages
-6. Add --version and --help support
+Create the CLI interface in bin/flutt.js:
+1. Use Commander.js to parse command line arguments
+2. Add options: --url, --device, --list-devices
+3. Add colorful output with Chalk
+4. Handle errors gracefully with helpful messages
+5. Make the file executable (shebang)
 ```
 
-### Phase 2: Enhanced Features
+### Phase 2: Device Management
 
-#### Task 2.1: Device Management System
+#### Task 2.1: Device Configurations
 **Prompt for Claude Code:**
 ```
-Implement a comprehensive device management system:
-1. Create src/devices.js with a DeviceManager class
-2. Add built-in device presets for popular devices (iPhone 12/13/14, Pixel 5, iPad)
-3. Load custom devices from config/default-devices.json
-4. Implement device validation
-5. Add method to list all available devices
-6. Support device lookup by name (case-insensitive, fuzzy matching)
+Create device configuration system in src/devices.js:
+1. Define device presets for iPhone (12, 13, 14 series)
+2. Add Android devices (Pixel series, Galaxy)
+3. Include tablets (iPad, Android tablets)
+4. Each device should have: name, viewport, userAgent, deviceScaleFactor
+5. Export functions to get device by name and list all devices
 ```
 
-#### Task 2.2: Visual Enhancements
+#### Task 2.2: Device Selection
 **Prompt for Claude Code:**
 ```
-Add visual enhancement features to the browser window:
-1. Implement optional device frame rendering using CSS injection
-2. Add zoom controls (50%, 75%, 100%, 125%, 150%)
-3. Create a device info overlay showing current device specs
-4. Add dark/light mode toggle functionality
-5. Implement these as command-line flags: --frame, --zoom, --info
+Enhance the CLI to support device selection:
+1. Implement --list-devices flag to show all available devices
+2. Add device validation when --device flag is used
+3. Group devices by category (iPhone, Android, Tablet) in list output
+4. Add fuzzy matching for device names (e.g., "iphone 12" matches "iPhone 12")
 ```
 
-#### Task 2.3: Developer Experience Improvements
+### Phase 3: Flutter Integration
+
+#### Task 3.1: Flutter Server Detection
 **Prompt for Claude Code:**
 ```
-Enhance the developer experience:
-1. Add auto-detection of running Flutter web servers (scan ports 5000-9999)
-2. Implement hot-reload preservation (maintain viewport on page reload)
-3. Add support for launching multiple device windows simultaneously
-4. Create keyboard shortcuts: Cmd/Ctrl+D (device switcher), Cmd/Ctrl+R (rotate)
-5. Add --watch flag to auto-restart on Flutter hot reload
+Implement Flutter server detection in src/flutter-detector.js:
+1. Scan common Flutter ports (3000-9999)
+2. Check for Flutter web server signatures
+3. Return list of detected servers with port and project info
+4. Add timeout and error handling
 ```
 
-### Phase 3: Advanced Features
-
-#### Task 3.1: Flutter Integration
+#### Task 3.2: Auto-launch Integration
 **Prompt for Claude Code:**
 ```
-Create Flutter-specific integrations:
-1. Create examples/flutter-integration.sh script
-2. Add Flutter port detection logic in src/utils.js
-3. Create VS Code task configuration in examples/.vscode/tasks.json
-4. Add Flutter-specific documentation in README.md
-5. Implement --flutter flag that auto-detects and connects to Flutter web server
+Add Flutter auto-detection to the CLI:
+1. When no URL is provided, scan for Flutter servers
+2. If one server found, auto-launch it
+3. If multiple found, show selection menu
+4. If none found, show helpful error message
 ```
 
-#### Task 3.2: Advanced Emulation Features
+### Phase 4: Visual Enhancements
+
+#### Task 4.1: Device Frames
 **Prompt for Claude Code:**
 ```
-Add advanced device emulation capabilities:
-1. Implement network throttling (3G, 4G, offline) with --network flag
-2. Add geolocation mocking with --location flag
-3. Create orientation toggle (portrait/landscape) with --rotate flag
-4. Add touch gesture visualization overlay
-5. Implement device capability restrictions (camera, microphone)
+Implement device frames in src/visual-enhancements.js:
+1. Create overlay system for device frames
+2. Add frame images for major devices
+3. Implement toggle functionality
+4. Ensure frames scale with zoom
 ```
 
-#### Task 3.3: Configuration & Persistence
+#### Task 4.2: Zoom Controls
 **Prompt for Claude Code:**
 ```
-Build configuration and persistence system:
-1. Create user config file at ~/.frb/config.json
-2. Save last used device and preferences
-3. Support project-specific .frbrc files
-4. Implement custom device saving with --save-device flag
-5. Add configuration commands: config get/set/reset
+Add zoom control functionality:
+1. Implement zoom in/out keyboard shortcuts
+2. Add zoom level indicator
+3. Save zoom preference per device
+4. Reset zoom option
 ```
 
-### Phase 4: Polish & Distribution
+### Phase 5: Configuration & Polish
 
-#### Task 4.1: Testing Suite
+#### Task 5.1: User Configuration
+**Prompt for Claude Code:**
+```
+Create user configuration system:
+1. Create config file at ~/.flutt/config.json
+2. Store user preferences: default device, theme, zoom level
+3. Add CLI flags to update config
+4. Implement config validation
+```
+
+#### Task 5.2: Error Handling & UX
+**Prompt for Claude Code:**
+```
+Polish the user experience:
+1. Add loading spinners for long operations
+2. Implement graceful shutdown on Ctrl+C
+3. Add helpful error messages with solutions
+4. Create --help with examples
+5. Add version command
+```
+
+### Phase 6: Testing & Documentation
+
+#### Task 6.1: Unit Tests
 **Prompt for Claude Code:**
 ```
 Create comprehensive test suite:
-1. Set up Jest testing framework
-2. Write unit tests for all core modules (aim for 80% coverage)
-3. Create integration tests for CLI commands
-4. Add GitHub Actions workflow for CI/CD
-5. Include cross-platform testing matrix (Windows, macOS, Linux)
+1. Test device configuration loading
+2. Test Flutter server detection
+3. Test CLI argument parsing
+4. Test error scenarios
+5. Mock Playwright for browser tests
 ```
 
-#### Task 4.2: Documentation
+#### Task 6.2: Documentation
 **Prompt for Claude Code:**
 ```
-Create complete documentation:
-1. Improve README.md with examples and screenshots
-2. Generate API documentation using JSDoc
-3. Create CONTRIBUTING.md with development guidelines
-4. Write Flutter integration guide in docs/flutter-guide.md
-5. Add troubleshooting section for common issues
+Create user documentation:
+1. Write comprehensive README with examples
+2. Add inline code documentation
+3. Create CONTRIBUTING.md
+4. Add example scripts in examples/
+5. Document keyboard shortcuts
 ```
 
-#### Task 4.3: Distribution Package
+### Phase 7: Distribution
+
+#### Task 7.1: Package Preparation
 **Prompt for Claude Code:**
 ```
-Prepare for distribution:
-1. Add npm publication configuration in package.json
-2. Create release script that builds and packages the tool
-3. Generate standalone executables using pkg
-4. Create installation instructions for npm, Homebrew, and direct download
-5. Set up automated release workflow with GitHub Actions
+Prepare for npm distribution:
+1. Update package.json with all metadata
+2. Create .npmignore
+3. Add prepublish scripts
+4. Test npm pack locally
+5. Add installation instructions
 ```
 
-## Claude Code Interaction Guidelines
-
-### Effective Prompting Strategies
-
-1. **Be Specific**: Include exact file paths and function names
-2. **Iterative Development**: Build features incrementally
-3. **Request Tests**: Ask for tests alongside implementation
-4. **Code Review**: Request Claude Code to review and optimize after implementation
-
-### Example Development Session
-
+#### Task 7.2: Cross-platform Support
+**Prompt for Claude Code:**
 ```
-You: "Create the DeviceManager class in src/devices.js with methods to load built-in devices, 
-add custom devices, and search devices by name. Include iPhone and Android presets."
-
-[Claude Code implements]
-
-You: "Add fuzzy search to the device lookup so 'iphone' matches 'iPhone 12 Pro'"
-
-[Claude Code enhances]
-
-You: "Write comprehensive tests for DeviceManager in tests/devices.test.js"
-
-[Claude Code adds tests]
+Ensure cross-platform compatibility:
+1. Test on Windows, macOS, Linux
+2. Handle platform-specific paths
+3. Add platform-specific installation notes
+4. Create GitHub Actions for CI/CD
 ```
 
-### Quality Checkpoints
+## Implementation Timeline
 
-After each phase, request Claude Code to:
-1. Run ESLint and fix any issues
-2. Ensure all functions have JSDoc comments
-3. Verify error handling is comprehensive
-4. Check for potential performance issues
-5. Review code for best practices
+- **Week 1**: Phase 1-2 (Core functionality & Device management)
+- **Week 2**: Phase 3-4 (Flutter integration & Visual enhancements)
+- **Week 3**: Phase 5-6 (Configuration & Testing)
+- **Week 4**: Phase 7 (Distribution & Polish)
 
-## Success Metrics
+## Success Criteria
 
-- **Code Quality**: 80%+ test coverage, zero ESLint errors
-- **Performance**: < 3 seconds from command to rendered page
-- **Usability**: Intuitive CLI with helpful error messages
-- **Documentation**: Clear, example-rich documentation
+1. Can launch browser with mobile emulation in < 3 seconds
+2. Supports at least 20 device presets
+3. Auto-detects Flutter servers reliably
+4. Works on all major platforms
+5. Has > 80% test coverage
+6. Clear documentation with examples
 
-## Tips for Working with Claude Code
-
-1. **Incremental Building**: Don't try to build everything at once
-2. **Test Frequently**: Request test runs after each major feature
-3. **Review Output**: Always review generated code for correctness
-4. **Iterate**: Don't hesitate to request improvements or fixes
-5. **Context Preservation**: Reference previous implementations when building related features
-
-## Project Milestones
-
-1. **Milestone 1**: Basic working tool (Phase 1 complete)
-2. **Milestone 2**: Feature-complete with device management (Phase 2 complete)
-3. **Milestone 3**: Production-ready with tests and docs (Phase 3-4 complete)
-
-## Getting Started with Claude Code
-
-Begin with:
-```
-"Create a new Node.js project for flutter-responsive-browser with the initial 
-project structure, package.json, and basic README as specified in the implementation plan"
-```
-
-Then proceed task by task through the phases, using the specific prompts provided for each task.
+This implementation plan provides a clear roadmap for development, with specific tasks that can be given to Claude Code for implementation.
