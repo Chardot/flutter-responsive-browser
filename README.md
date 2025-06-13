@@ -38,7 +38,14 @@ That's it! Your Flutter app opens instantly in a clean, mobile-emulated browser.
 
 ## 🚀 Quick Start
 
-### Install
+### Download Pre-built App (Recommended)
+
+**[⬇️ Download Flutt for macOS](https://github.com/Chardot/flutter-responsive-browser/releases/latest)**
+
+- **Apple Silicon (M1/M2/M3)**: Download `Flutt-1.0.0-arm64.dmg`
+- **Intel Macs**: Download `Flutt-1.0.0.dmg`
+
+### Install via npm
 
 ```bash
 npm install -g flutt
@@ -91,19 +98,25 @@ Options:
 
 ## 🔧 Installation Options
 
-### npm (Recommended)
+### Direct Download (Easiest)
+**[⬇️ Download from GitHub Releases](https://github.com/Chardot/flutter-responsive-browser/releases/latest)**
+
+Choose the appropriate file for your system:
+- **macOS Apple Silicon**: `Flutt-1.0.0-arm64.dmg`
+- **macOS Intel**: `Flutt-1.0.0.dmg`
+
+### npm
 ```bash
 npm install -g flutt
 ```
 
-### Homebrew
+### Build from Source
 ```bash
-brew tap yourusername/flutt
-brew install flutt
+git clone https://github.com/Chardot/flutter-responsive-browser.git
+cd flutter-responsive-browser
+npm install
+npm run dist
 ```
-
-### Direct Download
-Download the latest release from [GitHub Releases](https://github.com/yourusername/flutt/releases)
 
 ## 🎨 Features in Detail
 
